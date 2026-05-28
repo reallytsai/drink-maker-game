@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drink Maker 飲料調配師</title>
+    <style>
+        :root {
+            --primary: #4a2c11;
+            --primary-light: #8d5b32;
+            --accent: #e07a5f;
+            --bg-gradient: linear-gradient(135deg, #fefae0 0%, #faedcd 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #2b1a08;
+            --shadow: 0 10px 30px rgba(74, 44, 17, 0.08);
+            --border-radius: 20px;
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px 10px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        header {
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2.6rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--primary);
+        }
+
+        h1 span {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 2px 14px;
+            border-radius: 12px;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .recipe-box {
+            background: #2f2519;
+            color: #f4edd2;
+            padding: 22px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            border: 4px solid #4a3b2c;
+            position: relative;
+        }
+
+        .recipe-box::before {
+            content: "📋 TARGET";
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 3px 12px;
+            border-radius: 20px;
+            letter-spacing: 1px;
+        }
+
+        .recipe-title {
+            font-size: 2.1rem;
+            margin: 0;
+            font-weight: 700;
+            font-family: 'Georgia', serif;
+        }
+
+        .game-floor {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .game-floor {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .ingredients-bank {
+            background: var(--card-bg);
+            border: 1px solid rgba(74, 44, 17, 0.08);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            align-content: start;
+            box-shadow: var(--shadow);
+        }
+
+        .ingredient {
+            background: #ffffff;
+            border: 1px solid #e9e4dc;
+            padding: 16px 12px;
+            border-radius: 14px;
+            text-align: center;
+            cursor: grab;
+            user-select: none;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 6px rgba(74, 44, 17, 0.02);
+        }
+
+        .ingredient:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary-light);
+            box-shadow: 0 6px 15px rgba(74, 44, 17, 0.1);
+        }
+
+        .ingredient.hidden {
+            visibility: hidden;
+            opacity: 0;
+            transform: scale(0.8);
+            pointer-events: none;
+        }
+
+        .ing-en { display: block; font-weight: 700; font-size: 1.1rem; color: var(--primary); }
+        .ing-zh { display: block; font-size: 0.9rem; color: #8c7e70; margin-top: 4px; }
+
+        .cup-zone {
+            background: var(--card-bg);
+            border: 2px dashed rgba(141, 91, 50, 0.3);
+            border-radius: var(--border-radius);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px 20px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .cup-zone.drag-over {
+            background: #fdf0d5;
+            border-color: var(--accent);
+            transform: scale(1.02);
+        }
+
+        .cup-visual {
+            font-size: 6.5rem;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.06));
+            transition: transform 0.3s ease;
+        }
+
+        .cup-prompt { font-weight: 700; font-size: 1.1rem; text-align: center; color: var(--primary); }
+        .cup-prompt span { font-size: 0.9rem; color: #8c7e70; display: block; margin-top: 2px; }
+
+        .cup-contents-box { width: 100%; margin-top: 20px; padding-top: 15px; border-top: 1px dashed #e9e4dc; }
+        .cup-contents { font-size: 0.95rem; color: #5c4d3c; text-align: center; line-height: 1.6; font-weight: 500; }
+
+        .error-message { text-align: center; font-size: 1.05rem; font-weight: 600; min-height: 25px; color: #d90429; margin-top: 10px; }
+
+        /* REVIEW MATCHING GAME SCREEN */
+        .review-container {
+            display: none;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+        }
+
+        .review-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .review-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .review-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fcfbf7;
+            border: 2px dashed #cbd5e1;
+            padding: 12px 20px;
+            border-radius: 14px;
+            min-height: 65px;
+        }
+
+        .review-label {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .review-target-slot {
+            width: 140px;
+            height: 50px;
+            background: #f1f5f9;
+            border: 2px dashed #94a3b8;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .review-target-slot.drag-over { background: #fed7aa; border-color: var(--accent); }
+
+        .vault-title {
+            font-size: 0.9rem;
+            color: #64748b;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .words-vault {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            justify-content: start;
+            align-items: stretch;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+        .movable-word {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            cursor: grab;
+            user-select: none;
+            background: white;
+            padding: 12px;
+            text-align: center;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .movable-word:hover { transform: scale(1.03); background-color: #fafafa; }
+
+        /* MODAL OVERLAY */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(43, 26, 8, 0.7); backdrop-filter: blur(8px);
+            display: flex; justify-content: center; align-items: center; z-index: 1000;
+            opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-card {
+            background: white; padding: 45px 30px; border-radius: 28px; text-align: center;
+            max-width: 440px; width: 90%; box-shadow: 0 30px 60px rgba(0,0,0,0.25);
+            transform: scale(0.85); transition: transform 0.5s cubic-bezier(0.34, 1.6, 0.64, 1);
+        }
+        .modal-overlay.active .modal-card { transform: scale(1); }
+        .modal-emoji { font-size: 7.5rem; margin-bottom: -10px; display: inline-block; animation: floating 2s infinite ease-in-out; }
+        .modal-title-en { font-size: 2.4rem; font-weight: 900; color: #2a9d8f; margin: 15px 0 0 0; }
+        .modal-title-zh { font-size: 1.2rem; color: #6c757d; margin: 5px 0 25px 0; font-weight: 500; }
+        .completed-drink-tag { font-size: 1.4rem; font-weight: 700; background: #edf6f9; border: 1px solid #83c5be; padding: 10px 24px; border-radius: 50px; display: inline-block; margin-bottom: 30px; color: #006d77; }
+        .next-btn { background: linear-gradient(135deg, #2a9d8f 0%, #264653 100%); color: white; border: none; padding: 16px 32px; font-size: 1.2rem; font-weight: 700; border-radius: 16px; cursor: pointer; width: 100%; box-shadow: 0 10px 20px rgba(42, 157, 143, 0.2); }
+
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Drink Maker <span>飲料調配師</span></h1>
+    </header>
+
+    <!-- CORE MAKING GAME SYSTEM -->
+    <div class="game-container" id="main-game-wrapper">
+        <div class="recipe-box">
+            <div class="recipe-title" id="target-title">Make: Hot Chocolate</div>
+        </div>
+
+        <div class="game-floor">
+            <div class="ingredients-bank" id="ingredients-bank"></div>
+
+            <div class="cup-zone" id="cup-zone" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
+                <div class="cup-visual" id="cup-visual">☕</div>
+                <div class="cup-prompt">Drag ingredients here!<span>把配料拖移到這裡！</span></div>
+                <div class="cup-contents-box"><div class="cup-contents" id="cup-contents">Empty / 空的</div></div>
+            </div>
+        </div>
+        <div class="error-message" id="error-message"></div>
+    </div>
+
+    <!-- GRAND FINALE REVIEW MATCHING GAME CONTAINER -->
+    <div class="review-container" id="review-panel-wrapper">
+        <div class="recipe-box" style="background:#1e293b; border-color:#334155;">
+            <div class="recipe-title" style="color:#f8fafc; font-family:inherit;">Final Review: Match the Words!</div>
+        </div>
+        <div class="review-grid">
+            <div style="display:flex; flex-direction:column; gap:12px;" id="review-rows-container">
+                <!-- Word lines injected here dynamically -->
+            </div>
+            <div>
+                <div class="vault-title">Drag Chinese Here ➔</div>
+                <div class="words-vault" id="words-shuffled-vault">
+                    <!-- Mixed item target words here -->
+                </div>
+            </div>
+        </div>
+        <div class="error-message" id="review-error-message"></div>
+    </div>
+
+    <!-- NOTIFICATION MODALS -->
+    <div class="modal-overlay" id="win-modal">
+        <div class="modal-card">
+            <div class="modal-emoji" id="modal-emoji">☕✨</div>
+            <h2 class="modal-title-en">Perfect!</h2>
+            <p class="modal-title-zh">太棒了！你成功調配了飲品！</p>
+            <div class="completed-drink-tag" id="completed-drink-name">Hot Chocolate</div>
+            <button class="next-btn" id="modal-action-btn" onclick="nextLevel()">Next Drink / 下一杯 ➔</button>
+        </div>
+    </div>
+
+    <script>
+        const allIngredients = {
+            marshmallow: { en: "Marshmallow", zh: "棉花糖" },
+            chocolate_sauce: { en: "Chocolate Sauce", zh: "巧克力醬" },
+            chocolate: { en: "Chocolate", zh: "巧克力" },
+            water: { en: "Water", zh: "水" },
+            milk: { en: "Milk", zh: "牛奶" },
+            coffee_powder: { en: "Coffee Bean Powder", zh: "咖啡粉" },
+            sugar: { en: "Sugar", zh: "糖" },
+            lemon: { en: "Lemon", zh: "檸檬" },
+            ice: { en: "Ice", zh: "冰塊" },
+            teabag: { en: "Tea Bag", zh: "茶包" },
+            black_tea: { en: "Black Tea", zh: "紅茶" },
+            boba: { en: "Boba (Tapioca)", zh: "珍珠" },
+            soy_bean: { en: "Soy Bean", zh: "黃豆" }
+        };
+
+        // All icons updated to super-safe legacy icons to ensure cross-device rendering (e.g., Chromebooks)
+        const recipes = [
+            { id: "hot_chocolate", name: "Hot Chocolate", zhName: "熱巧克力", required: ["marshmallow", "chocolate_sauce", "chocolate", "water", "milk"], icon: "☕" },
+            { id: "coffee", name: "Coffee", zhName: "咖啡", required: ["coffee_powder", "water", "sugar"], icon: "☕" },
+            { id: "lemonade", name: "Lemonade", zhName: "檸檬汁", required: ["lemon", "water", "ice"], icon: "🍹" },
+            { id: "tea", name: "Tea", zhName: "茶", required: ["teabag", "water"], icon: "☕" },
+            { id: "bubble_tea", name: "Bubble Tea", zhName: "珍珠奶茶", required: ["ice", "milk", "black_tea", "boba"], icon: "🍹" },
+            { id: "soy_milk", name: "Soy Milk", zhName: "豆漿", required: ["soy_bean", "water"], icon: "🥛" }
+        ];
+
+        let currentLevelIndex = 0;
+        let addedIngredients = [];
+        let matchingScoreTracker = 0;
+
+        function initGame() {
+            addedIngredients = [];
+            document.getElementById('error-message').innerText = '';
+            document.getElementById('win-modal').classList.remove('active');
+            
+            const currentRecipe = recipes[currentLevelIndex];
+            document.getElementById('target-title').innerText = `Make: ${currentRecipe.name}`;
+            document.getElementById('cup-visual').innerText = currentRecipe.icon;
+            
+            renderIngredientsBank();
+            updateCupContents();
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function renderIngredientsBank() {
+            const bank = document.getElementById('ingredients-bank');
+            bank.innerHTML = '';
+            const shuffledKeys = shuffleArray(Object.keys(allIngredients));
+            
+            shuffledKeys.forEach(key => {
+                const item = allIngredients[key];
+                const div = document.createElement('div');
+                div.className = 'ingredient';
+                div.setAttribute('draggable', 'true');
+                div.setAttribute('id', key);
+                div.addEventListener('dragstart', dragStart);
+                div.innerHTML = `<span class="ing-en">${item.en}</span><span class="ing-zh">${item.zh}</span>`;
+                bank.appendChild(div);
+            });
+        }
+
+        function updateCupContents() {
+            const contentsDiv = document.getElementById('cup-contents');
+            contentsDiv.innerHTML = addedIngredients.length === 0 ? "Empty / 空的" : addedIngredients.map(k => `✨ ${allIngredients[k].en} (${allIngredients[k].zh})`).join('<br>');
+        }
+
+        function dragStart(e) { e.dataTransfer.setData('text/plain', e.target.closest('[draggable]').id); }
+        function allowDrop(e) { e.preventDefault(); e.target.closest('.cup-zone, .review-target-slot')?.classList.add('drag-over'); }
+        function dragLeave(e) { e.target.closest('.cup-zone, .review-target-slot')?.classList.remove('drag-over'); }
+
+        function drop(e) {
+            e.preventDefault();
+            const zone = document.getElementById('cup-zone');
+            zone.classList.remove('drag-over');
+            
+            const ingredientId = e.dataTransfer.getData('text/plain');
+            const errorDiv = document.getElementById('error-message');
+            const currentRecipe = recipes[currentLevelIndex];
+
+            if (!currentRecipe.required.includes(ingredientId)) {
+                errorDiv.innerHTML = "❌ Oops! That's not in the recipe! / 哎呀！這不是此飲品需要的配料！";
+                bounceCup(false); return;
+            }
+            if (addedIngredients.includes(ingredientId)) {
+                errorDiv.innerHTML = "⚠️ You already added that! / 你已經加過這個配料了！"; return;
+            }
+
+            addedIngredients.push(ingredientId);
+            errorDiv.innerText = "";
+            bounceCup(true);
+            updateCupContents();
+
+            document.getElementById(ingredientId)?.classList.add('hidden');
+
+            if (addedIngredients.length === currentRecipe.required.length) {
+                setTimeout(() => {
+                    document.getElementById('modal-emoji').innerText = currentRecipe.icon + "✨";
+                    document.getElementById('completed-drink-name').innerText = currentRecipe.name;
+                    
+                    const actionBtn = document.getElementById('modal-action-btn');
+                    if (currentLevelIndex === recipes.length - 1) {
+                        actionBtn.innerText = "Start Final Review / 開始總複習 ➔";
+                        actionBtn.setAttribute('onclick', 'launchReviewStage()');
+                    } else {
+                        actionBtn.innerText = "Next Drink / 下一杯 ➔";
+                        actionBtn.setAttribute('onclick', 'nextLevel()');
+                    }
+                    document.getElementById('win-modal').classList.add('active');
+                }, 400);
+            }
+        }
+
+        function bounceCup(success) {
+            const cup = document.getElementById('cup-visual');
+            cup.style.transform = success ? 'scale(1.25) rotate(4deg)' : 'scale(0.85) rotate(-6deg)';
+            setTimeout(() => cup.style.transform = 'scale(1) rotate(0deg)', 300);
+        }
+
+        function nextLevel() {
+            currentLevelIndex++;
+            initGame();
+        }
+
+        /* CHINESE TO ENGLISH WORD MATCHING LOGIC */
+        function launchReviewStage() {
+            document.getElementById('win-modal').classList.remove('active');
+            document.getElementById('main-game-wrapper').style.display = 'none';
+            document.getElementById('review-panel-wrapper').style.display = 'block';
+            matchingScoreTracker = 0;
+
+            const rowsContainer = document.getElementById('review-rows-container');
+            const vault = document.getElementById('words-shuffled-vault');
+            rowsContainer.innerHTML = '';
+            vault.innerHTML = '';
+
+            // Left Side: English labels + Empty target slots
+            recipes.forEach(recipe => {
+                const row = document.createElement('div');
+                row.className = 'review-row';
+                row.innerHTML = `<span class="review-label">${recipe.icon} ${recipe.name}</span>
+                                 <div class="review-target-slot" id="slot-${recipe.id}" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="handleReviewDrop(event, '${recipe.id}')"></div>`;
+                rowsContainer.appendChild(row);
+            });
+
+            // Right Side: Shuffled Chinese terms
+            const shuffledRecipes = shuffleArray([...recipes]);
+            shuffledRecipes.forEach(recipe => {
+                const wordElement = document.createElement('div');
+                wordElement.className = 'movable-word';
+                wordElement.innerText = recipe.zhName;
+                wordElement.setAttribute('draggable', 'true');
+                wordElement.setAttribute('id', `word-${recipe.id}`);
+                wordElement.addEventListener('dragstart', dragStart);
+                vault.appendChild(wordElement);
+            });
+        }
+
+        function handleReviewDrop(e, targetRecipeId) {
+            e.preventDefault();
+            const slot = e.target.closest('.review-target-slot');
+            slot.classList.remove('drag-over');
+            
+            const draggedId = e.dataTransfer.getData('text/plain');
+            const expectedWordId = `word-${targetRecipeId}`;
+            const errDiv = document.getElementById('review-error-message');
+
+            if (draggedId !== expectedWordId) {
+                errDiv.innerText = "❌ Incorrect Match! Try again! / 配對錯誤！再試一次！";
+                return;
+            }
+
+            // Correct match
+            errDiv.innerText = "";
+            const matchedWord = document.getElementById(draggedId);
+            slot.appendChild(matchedWord);
+            matchedWord.setAttribute('draggable', 'false');
+            matchedWord.style.width = '100%';
+            matchedWord.style.boxShadow = 'none';
+            matchedWord.style.border = 'none';
+            
+            slot.style.borderStyle = 'solid';
+            slot.style.borderColor = '#16a34a';
+            slot.style.background = '#dcfce7';
+            
+            matchingScoreTracker++;
+
+            // Check if user completed all 6 matches
+            if (matchingScoreTracker === recipes.length) {
+                setTimeout(() => {
+                    document.getElementById('modal-emoji').innerText = "🏆🎉";
+                    document.getElementById('completed-drink-name').innerText = "All Drinks Completed!";
+                    
+                    const actionBtn = document.getElementById('modal-action-btn');
+                    actionBtn.innerText = "Play Again / 重玩遊戲 ➔";
+                    actionBtn.setAttribute('onclick', 'location.reload()');
+                    
+                    document.getElementById('win-modal').classList.add('active');
+                }, 500);
+            }
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
